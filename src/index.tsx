@@ -37,15 +37,17 @@ class App {
     }
 
     private animate = () => {
+        const audioIntensity = this.analyser.getAudioIntensity();
+        
         if (this.analyser.isSoundDetected()) {
-            console.log('Sound detected!');
+            console.log('Sound detected! Intensity:', audioIntensity);
             // Emit a single particle in the center
             this.particles.emit(0.5, 0.5, 0, 0);
         }
         
         // Update and render
         this.particles.update(1/60);
-        this.visualizer.update();
+        this.visualizer.update(audioIntensity);
         this.renderer.render();
         
         this.animationFrameId = requestAnimationFrame(this.animate);

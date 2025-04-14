@@ -6,8 +6,10 @@ export class Visualizer2D {
     private particleGeometry: THREE.BufferGeometry;
     private particleMaterial: THREE.PointsMaterial;
     private particlePoints: THREE.Points;
+    private scene: THREE.Scene;
 
     constructor(scene: THREE.Scene, particleSystem: ParticleSystem) {
+        this.scene = scene;
         this.particleSystem = particleSystem;
         
         // Setup particle rendering
@@ -28,7 +30,14 @@ export class Visualizer2D {
         }
     }
 
-    update() {
+    update(audioIntensity: number = 0) {
+        // Change background color based on audio intensity
+        // Map intensity (0-255) to a color (blue to red)
+        const r = Math.min(1, audioIntensity / 128);
+        const b = Math.max(0, 1 - audioIntensity / 128);
+        this.scene.background = new THREE.Color(r, 0, b);
+        
+        // Update particles
         const particles = this.particleSystem.getParticles();
         const positions = new Float32Array(particles.length * 3);
         

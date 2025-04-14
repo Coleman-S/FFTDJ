@@ -14,8 +14,12 @@ export class AudioAnalyser {
     }
 
     isSoundDetected(): boolean {
+        return this.getAudioIntensity() > 10;
+    }
+    
+    getAudioIntensity(): number {
         this.analyser.getByteFrequencyData(this.dataArray);
         const average = this.dataArray.reduce((a, b) => a + b, 0) / this.dataArray.length;
-        return average > 10; // Adjust this threshold as needed
+        return average;
     }
 } 
