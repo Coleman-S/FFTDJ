@@ -2,32 +2,28 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { AudioManager } from './audio/audioContext';
 import { AudioAnalyser } from './audio/analyser';
-import { ParticleSystem } from './simulation/particles';
-import { ThreeRenderer } from './renderer/threeSetup';
-import { Visualizer2D } from './renderer/visualizer2D';
+import { CanvasParticleSystem } from './canvasParticleSystem';
 
 class App {
     private audioManager: AudioManager;
     private analyser: AudioAnalyser;
-    private particles: ParticleSystem;
-    private renderer: ThreeRenderer;
-    private visualizer: Visualizer2D;
+    private particleSystem: CanvasParticleSystem;
     private animationFrameId: number | null = null;
     private isRunning: boolean = false;
 
     constructor() {
         this.audioManager = new AudioManager();
         this.analyser = new AudioAnalyser(this.audioManager.getContext());
-        this.particles = new ParticleSystem(100); // Increased particle count
-        this.renderer = new ThreeRenderer(document.getElementById('app')!);
-        this.visualizer = new Visualizer2D(this.renderer.getScene(), this.particles);
-        
+        this.particleSystem = new CanvasParticleSystem('particleCanvas');
+
+        // Start particle animation
+        this.particleSystem.animate();
+
         this.setupEventListeners();
         this.initialize();
     }
 
     private setupEventListeners() {
-        // Add an event to resume audio context on user interaction
         document.addEventListener('click', () => {
             if (this.audioManager.getContext().state === 'suspended') {
                 this.audioManager.getContext().resume().then(() => {
@@ -35,61 +31,6 @@ class App {
                 });
             }
         });
-
-        // Listen for audio source created events
-        document.addEventListener('audioSourceCreated', ((e: CustomEvent) => {
-            console.log('Received audio source created event');
-            if (e.detail && e.detail.source) {
-                this.analyser.connect(e.detail.source);
-                console.log('Reconnected analyser to new audio source');
-            }
-        }) as EventListener);
-
-        // Add test button and instructions
-        const controlsDiv = document.getElementById('controls');
-        if (controlsDiv) {
-            // Add instructions
-            const instructions = document.createElement('div');
-            instructions.innerHTML = `
-                <div style="margin-bottom: 15px; color: white; text-align: center; padding: 10px; background: rgba(0,0,0,0.5); border-radius: 5px;">
-                    <h3>Audio Visualizer</h3>
-                    <p>Click anywhere or press any key to activate audio.</p>
-                    <p>If no sound is detected, use the button below.</p>
-                </div>
-            `;
-            controlsDiv.appendChild(instructions);
-            
-            // Add test button
-            const testButton = document.createElement('button');
-            testButton.innerText = 'Generate Test Sound';
-            testButton.style.padding = '8px';
-            testButton.style.marginTop = '10px';
-            testButton.style.width = '100%';
-            testButton.addEventListener('click', this.generateTestSound.bind(this));
-            controlsDiv.appendChild(testButton);
-        }
-    }
-
-    private generateTestSound() {
-        const ctx = this.audioManager.getContext();
-        // Create an oscillator for testing
-        const oscillator = ctx.createOscillator();
-        const gainNode = ctx.createGain();
-        
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(440, ctx.currentTime); // A4 note
-        gainNode.gain.setValueAtTime(0.5, ctx.currentTime);
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(ctx.destination);
-        
-        // Also connect to the analyzer
-        gainNode.connect(this.analyser.getAnalyserNode());
-        
-        oscillator.start();
-        oscillator.stop(ctx.currentTime + 1); // Play for 1 second
-        
-        console.log('Test sound generated');
     }
 
     private async initialize() {
@@ -106,31 +47,31 @@ class App {
     }
 
     private animate = () => {
-        if (!this.isRunning) return;
-        
-        const audioIntensity = this.analyser.getAudioIntensity();
-        console.log('Audio intensity:', audioIntensity);
-        
-        if (this.analyser.isSoundDetected()) {
-            console.log('Sound detected! Intensity:', audioIntensity);
-            // Emit multiple particles in random positions for better effect
-            for (let i = 0; i < 5; i++) {
-                const x = Math.random();
-                const y = Math.random();
-                const vx = (Math.random() - 0.5) * 0.01;
-                const vy = (Math.random() - 0.5) * 0.01;
-                this.particles.emit(x, y, vx, vy);
-            }
-        }
-        
-        // Update and render
-        this.particles.update(1/60);
-        this.visualizer.update(audioIntensity);
-        this.renderer.render();
-        
-        this.animationFrameId = requestAnimationFrame(this.animate);
-    }
+    if (!this.isRunning) return;
+
+    const audioIntensity = this.analyser.getAudioIntensity();
+    console.log('Audio intensity:', audioIntensity);
+
+    // Base color: dark blue (rgb(0, 0, 50))
+    const baseR = 0; // Red component stays constant
+    const baseG = 0; // Green component stays constant
+    const baseB = 50; // Blue component starts at 50
+
+    // Adjust the blue component based on audio intensity
+    const intensityFactor = audioIntensity / 255; // Normalize intensity to [0, 1]
+    const bgR = Math.min(50, baseR + intensityFactor * 50); // Red increases slightly
+    const bgG = Math.min(50, baseG + intensityFactor * 50); // Green increases slightly
+    const bgB = Math.min(255, baseB + intensityFactor * 200); // Blue becomes brighter
+
+    const backgroundColor = `rgb(${Math.floor(bgR)}, ${Math.floor(bgG)}, ${Math.floor(bgB)})`;
+
+    // Update the particle system's background color
+    this.particleSystem.setBackgroundColor(backgroundColor);
+
+    // Continue animation
+    this.animationFrameId = requestAnimationFrame(this.animate);
+};
 }
 
 // Start the application
-const appInstance = new App(); 
+const appInstance = new App();
