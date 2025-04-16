@@ -38,6 +38,7 @@ class App {
 
     private animate = () => {
         const audioIntensity = this.analyser.getAudioIntensity();
+        console.log('Audio intensity:', audioIntensity);
         
         if (this.analyser.isSoundDetected()) {
             console.log('Sound detected! Intensity:', audioIntensity);
