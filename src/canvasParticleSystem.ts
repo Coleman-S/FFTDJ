@@ -1,23 +1,43 @@
 export class CanvasParticleSystem {
     private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
-    private dots: { x: number; y: number; vx: number; vy: number }[] = [];
+    private dots: { 
+        x: number; 
+        y: number; 
+        vx: number; 
+        vy: number;
+        mass: number;  
+    }[] = [];
     private DOT_COUNT = 100;
     private RADIUS = 2;
     private DIST_THRESH_MAX = 120;
-    private backgroundColor: string = '#000000'; // Default background color
+    private backgroundColor: string = '#000000';
+    private audioAnalyser: any;  
+    private frequencyBands: { centerFreq: number, intensity: number }[] = [];
+    private readonly FORCE_CONSTANT = 2.0;  // Increased for more visible effect
+    private readonly NUM_FREQUENCY_BANDS = 8;
+    private readonly DAMPING = 0.98;  
 
     constructor(canvasId: string) {
         this.canvas = document.getElementById(canvasId) as HTMLCanvasElement;
         this.ctx = this.canvas.getContext('2d')!;
         this.resizeCanvas();
         window.addEventListener('resize', this.resizeCanvas.bind(this));
+        this.initializeFrequencyBands();
         this.initializeDots();
     }
 
-    private resizeCanvas() {
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
+    public connectAudioAnalyser(analyser: any) {
+        this.audioAnalyser = analyser;
+    }
+
+    private initializeFrequencyBands() {
+        const minFreq = 20;  
+        const maxFreq = 2000;  
+        for (let i = 0; i < this.NUM_FREQUENCY_BANDS; i++) {
+            const centerFreq = minFreq * Math.pow(maxFreq/minFreq, i/(this.NUM_FREQUENCY_BANDS-1));
+            this.frequencyBands.push({ centerFreq, intensity: 0 });
+        }
     }
 
     private initializeDots() {
@@ -27,8 +47,14 @@ export class CanvasParticleSystem {
                 y: Math.random() * this.canvas.height,
                 vx: (Math.random() - 0.5),
                 vy: (Math.random() - 0.5),
+                mass: 0.1 + Math.random() * 0.9  
             });
         }
+    }
+
+    private resizeCanvas() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
     }
 
     private distance(dot1: any, dot2: any) {
@@ -42,7 +68,6 @@ export class CanvasParticleSystem {
     }
 
     private drawDots() {
-        // Use the dynamic background color
         this.ctx.fillStyle = this.backgroundColor;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -87,8 +112,75 @@ export class CanvasParticleSystem {
         }
     }
 
+    private updateFFTForces() {
+        if (!this.audioAnalyser) return;
+
+        const freqData = new Uint8Array(this.audioAnalyser.analyser.frequencyBinCount);
+        this.audioAnalyser.analyser.getByteFrequencyData(freqData);
+
+        this.frequencyBands.forEach((band, i) => {
+            const binIndex = Math.floor((band.centerFreq / (this.audioAnalyser.analyser.context.sampleRate/2)) * freqData.length);
+            band.intensity = freqData[binIndex] / 255.0;  
+        });
+    }
+
+    private applyFFTForces(dot: { x: number; y: number; vx: number; vy: number; mass: number }) {
+        let totalFx = 0;
+        let totalFy = 0;
+
+        for (let i = 0; i < this.frequencyBands.length; i++) {
+            const band = this.frequencyBands[i];
+            const angle = (2 * Math.PI * i) / this.NUM_FREQUENCY_BANDS;
+            const radius = this.canvas.width * 0.3;  
+            const centerX = this.canvas.width/2 + radius * Math.cos(angle);
+            const centerY = this.canvas.height/2 + radius * Math.sin(angle);
+
+            const dx = centerX - dot.x;
+            const dy = centerY - dot.y;
+            const distanceSquared = dx * dx + dy * dy;
+            const distance = Math.sqrt(distanceSquared);
+
+            // Skip if we're too close to avoid extreme forces
+            if (distance < 1) continue;
+
+            // Force magnitude decreases with square of distance
+            const forceMag = this.FORCE_CONSTANT * band.intensity / (distanceSquared);
+
+            // Normalize direction vectors
+            const dirX = dx / distance;
+            const dirY = dy / distance;
+
+            totalFx += dirX * forceMag;
+            totalFy += dirY * forceMag;
+        }
+
+        // Apply forces with mass and limit maximum velocity
+        const ax = totalFx / dot.mass;
+        const ay = totalFy / dot.mass;
+        
+        dot.vx += ax;
+        dot.vy += ay;
+
+        // Apply damping
+        dot.vx *= this.DAMPING;
+        dot.vy *= this.DAMPING;
+
+        // Limit maximum velocity to prevent particles from moving too fast
+        const speedSquared = dot.vx * dot.vx + dot.vy * dot.vy;
+        const maxSpeed = 10;
+        if (speedSquared > maxSpeed * maxSpeed) {
+            const scale = maxSpeed / Math.sqrt(speedSquared);
+            dot.vx *= scale;
+            dot.vy *= scale;
+        }
+    }
+
     private updateDots() {
+        this.updateFFTForces();
+
         for (const dot of this.dots) {
+            this.applyFFTForces(dot);
+
             dot.x += dot.vx;
             dot.y += dot.vy;
 
@@ -104,10 +196,44 @@ export class CanvasParticleSystem {
         this.backgroundColor = color;
     }
 
+    private drawForceFields() {
+        if (!this.audioAnalyser) return;
+
+        this.frequencyBands.forEach((band, i) => {
+            const angle = (2 * Math.PI * i) / this.NUM_FREQUENCY_BANDS;
+            const radius = this.canvas.width * 0.3;
+            const centerX = this.canvas.width/2 + radius * Math.cos(angle);
+            const centerY = this.canvas.height/2 + radius * Math.sin(angle);
+
+            // Create a radial gradient
+            const gradient = this.ctx.createRadialGradient(
+                centerX, centerY, 0,
+                centerX, centerY, radius * band.intensity
+            );
+
+            // Color based on frequency (low=red, mid=green, high=blue)
+            const hue = (i / this.NUM_FREQUENCY_BANDS) * 360;
+            gradient.addColorStop(0, `hsla(${hue}, 100%, 50%, ${band.intensity * 0.5})`);
+            gradient.addColorStop(1, `hsla(${hue}, 100%, 50%, 0)`);
+
+            // Draw the force field
+            this.ctx.beginPath();
+            this.ctx.fillStyle = gradient;
+            this.ctx.arc(centerX, centerY, radius * band.intensity, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Draw center point
+            this.ctx.beginPath();
+            this.ctx.fillStyle = `hsla(${hue}, 100%, 50%, ${band.intensity})`;
+            this.ctx.arc(centerX, centerY, 4, 0, Math.PI * 2);
+            this.ctx.fill();
+        });
+    }
+
     public animate() {
         this.updateDots();
         this.drawDots();
+        this.drawForceFields(); // Draw force fields before connections for better layering
         this.drawConnections();
-        requestAnimationFrame(this.animate.bind(this));
     }
 }

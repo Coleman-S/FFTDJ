@@ -16,8 +16,7 @@ class App {
         this.analyser = new AudioAnalyser(this.audioManager.getContext());
         this.particleSystem = new CanvasParticleSystem('particleCanvas');
 
-        // Start particle animation
-        this.particleSystem.animate();
+        // Initialize particle system
 
         this.setupEventListeners();
         this.initialize();
@@ -38,6 +37,8 @@ class App {
             console.log('Starting initialization...');
             const source = await this.audioManager.initialize();
             this.analyser.connect(source);
+            // Connect the analyser to the particle system
+            this.particleSystem.connectAudioAnalyser(this.analyser);
             console.log('Audio setup complete, starting animation...');
             this.isRunning = true;
             this.animate();
@@ -67,6 +68,9 @@ class App {
 
     // Update the particle system's background color
     this.particleSystem.setBackgroundColor(backgroundColor);
+
+    // Update and animate the particle system
+    this.particleSystem.animate();
 
     // Continue animation
     this.animationFrameId = requestAnimationFrame(this.animate);
