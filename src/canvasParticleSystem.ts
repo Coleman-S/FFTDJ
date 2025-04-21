@@ -14,9 +14,11 @@ export class CanvasParticleSystem {
     private backgroundColor: string = '#000000';
     private audioAnalyser: any;  
     private frequencyBands: { centerFreq: number, intensity: number }[] = [];
-    private readonly FORCE_CONSTANT = 2.0;  // Increased for more visible effect
+    private readonly FORCE_CONSTANT = 10.0;  // Significantly increased for stronger gravitational pull
+    private readonly INWARD_PULL = 0.5;  // Gentle force pulling particles back when they stray too far
     private readonly NUM_FREQUENCY_BANDS = 8;
-    private readonly DAMPING = 0.98;  
+    private readonly DAMPING = 0.99;  // Reduced damping to maintain more energy
+    private readonly EDGE_BOUNCE = 0.8;  // Bounce factor when hitting edges
 
     constructor(canvasId: string) {
         this.canvas = document.getElementById(canvasId) as HTMLCanvasElement;
@@ -45,8 +47,8 @@ export class CanvasParticleSystem {
             this.dots.push({
                 x: Math.random() * this.canvas.width,
                 y: Math.random() * this.canvas.height,
-                vx: (Math.random() - 0.5),
-                vy: (Math.random() - 0.5),
+                vx: (Math.random() - 0.5) * 5,  
+                vy: (Math.random() - 0.5) * 5,  
                 mass: 0.1 + Math.random() * 0.9  
             });
         }
@@ -128,10 +130,11 @@ export class CanvasParticleSystem {
         let totalFx = 0;
         let totalFy = 0;
 
+        // Apply force field forces
         for (let i = 0; i < this.frequencyBands.length; i++) {
             const band = this.frequencyBands[i];
             const angle = (2 * Math.PI * i) / this.NUM_FREQUENCY_BANDS;
-            const radius = this.canvas.width * 0.3;  
+            const radius = Math.min(this.canvas.width, this.canvas.height) * 0.25;  // Using 25% of screen size
             const centerX = this.canvas.width/2 + radius * Math.cos(angle);
             const centerY = this.canvas.height/2 + radius * Math.sin(angle);
 
@@ -181,14 +184,38 @@ export class CanvasParticleSystem {
         for (const dot of this.dots) {
             this.applyFFTForces(dot);
 
+            // Add gentle inward pull when particles stray too far
+            const dx = this.canvas.width/2 - dot.x;
+            const dy = this.canvas.height/2 - dot.y;
+            const distFromCenter = Math.sqrt(dx * dx + dy * dy);
+            const maxDist = Math.min(this.canvas.width, this.canvas.height) * 0.4;  // Start pulling back at 40% of screen size
+            
+            if (distFromCenter > maxDist) {
+                const pullFactor = (distFromCenter - maxDist) * this.INWARD_PULL / distFromCenter;
+                dot.vx += dx * pullFactor;
+                dot.vy += dy * pullFactor;
+            }
+
+            // Update position
             dot.x += dot.vx;
             dot.y += dot.vy;
 
-            if (dot.x < 0) dot.x = this.canvas.width;
-            else if (dot.x > this.canvas.width) dot.x = 0;
+            // Bounce off edges instead of wrapping
+            if (dot.x < 0) {
+                dot.x = 0;
+                dot.vx = Math.abs(dot.vx) * this.EDGE_BOUNCE;
+            } else if (dot.x > this.canvas.width) {
+                dot.x = this.canvas.width;
+                dot.vx = -Math.abs(dot.vx) * this.EDGE_BOUNCE;
+            }
 
-            if (dot.y < 0) dot.y = this.canvas.height;
-            else if (dot.y > this.canvas.height) dot.y = 0;
+            if (dot.y < 0) {
+                dot.y = 0;
+                dot.vy = Math.abs(dot.vy) * this.EDGE_BOUNCE;
+            } else if (dot.y > this.canvas.height) {
+                dot.y = this.canvas.height;
+                dot.vy = -Math.abs(dot.vy) * this.EDGE_BOUNCE;
+            }
         }
     }
 
@@ -201,7 +228,7 @@ export class CanvasParticleSystem {
 
         this.frequencyBands.forEach((band, i) => {
             const angle = (2 * Math.PI * i) / this.NUM_FREQUENCY_BANDS;
-            const radius = this.canvas.width * 0.3;
+            const radius = Math.min(this.canvas.width, this.canvas.height) * 0.25;  // Using 25% of screen size
             const centerX = this.canvas.width/2 + radius * Math.cos(angle);
             const centerY = this.canvas.height/2 + radius * Math.sin(angle);
 
