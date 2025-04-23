@@ -1,5 +1,6 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const fs = require("fs");
 
 module.exports = {
    mode: "development",
@@ -39,6 +40,14 @@ module.exports = {
    devServer: {
       static: {
          directory: path.join(__dirname, "dist"),
+      },
+      https: {
+         key: fs.readFileSync(
+            path.resolve(__dirname, "certificates/localhost-key.pem")
+         ),
+         cert: fs.readFileSync(
+            path.resolve(__dirname, "certificates/localhost-cert.pem")
+         ),
       },
       historyApiFallback: true,
       compress: true,
