@@ -1,0 +1,89 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FFTDJ</title><style>body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            font-family: Arial, sans-serif;
+        }
+        #app {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        #controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+            z-index: 10;
+        }
+        #welcome-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            z-index: 100;
+            opacity: 1;
+            transition: opacity 1s ease-in-out;
+        }
+        #welcome-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .welcome-content {
+            max-width: 600px;
+            padding: 40px;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: #00aaff;
+        }
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        button.start-button {
+            background: #00aaff;
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            font-size: 1.2rem;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button.start-button:hover {
+            background: #0088cc;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input, select {
+            width: 100%;
+        }</style><script defer="defer" src="/bundle.js"></script></head><body><div id="app"><canvas id="particleCanvas"></canvas><canvas id="lineCanvas" style="display: none;"></canvas><canvas id="threeCanvas" style="display: none;"></canvas><div id="controls"></div><div id="welcome-overlay"><div class="welcome-content"><h1>FFTDJ</h1><p>This application uses your microphone to create dynamic visual effects based on sound input.</p><p>Click the button below to start the experience and grant microphone access.</p><button class="start-button" id="start-button">Start Experience</button></div></div></div><script>// Remove welcome overlay on user interaction
+        document.getElementById('start-button').addEventListener('click', function() {
+            document.getElementById('welcome-overlay').classList.add('hidden');
+        });
+        
+        // Additional backup - also hide overlay on any interaction
+        document.addEventListener('click', function() {
+            setTimeout(function() {
+                document.getElementById('welcome-overlay').classList.add('hidden');
+            }, 1000); // Wait a second to ensure proper initialization
+        });</script></body></html>
