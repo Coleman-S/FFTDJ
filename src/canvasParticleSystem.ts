@@ -10,7 +10,7 @@ export class CanvasParticleSystem {
     }[] = [];
     private DOT_COUNT = 50;
     private RADIUS = 2;
-    private DIST_THRESH_MAX = 120;
+    private DIST_THRESH_MAX = 90;
     private backgroundColor: string = '#000000';
     private audioAnalyser: any;  
     private frequencyBands: { centerFreq: number, intensity: number }[] = [];

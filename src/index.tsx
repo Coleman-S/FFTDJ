@@ -3,11 +3,14 @@ import { createRoot } from 'react-dom/client';
 import { AudioManager } from './audio/audioContext';
 import { AudioAnalyser } from './audio/analyser';
 import { CanvasParticleSystem } from './canvasParticleSystem';
+import { CanvasLineVisualizer } from './canvasLineVisualizer';
 
 class App {
     private audioManager: AudioManager;
     private analyser: AudioAnalyser;
     private particleSystem: CanvasParticleSystem;
+    private lineVisualizer: CanvasLineVisualizer;
+    private currentMode: 'particles' | 'waveform' = 'particles';
     private animationFrameId: number | null = null;
     private isRunning: boolean = false;
 
@@ -15,7 +18,8 @@ class App {
         this.audioManager = new AudioManager();
         this.analyser = new AudioAnalyser(this.audioManager.getContext());
         this.particleSystem = new CanvasParticleSystem('particleCanvas');
-
+        this.lineVisualizer = new CanvasLineVisualizer('lineCanvas', this.analyser.getAnalyserNode());
+        
         // Initialize particle system
 
         this.setupEventListeners();
@@ -151,6 +155,34 @@ class App {
         appDiv.appendChild(toggleBtn);
     }
 
+    /**
+     * Setup select control to choose visualization mode.
+     */
+    private setupVisualizationModeControl() {
+        const controlsDiv = document.getElementById('controls');
+        if (!controlsDiv) return;
+        const group = document.createElement('div');
+        group.className = 'control-group';
+        const label = document.createElement('label');
+        label.textContent = 'Visualization Mode:';
+        group.appendChild(label);
+        const select = document.createElement('select');
+        ['particles','waveform'].forEach(mode => {
+            const opt = document.createElement('option');
+            opt.value = mode;
+            opt.text = mode.charAt(0).toUpperCase()+mode.slice(1);
+            select.appendChild(opt);
+        });
+        select.value = this.currentMode;
+        select.addEventListener('change', () => {
+            this.currentMode = select.value as any;
+            document.getElementById('particleCanvas')!.style.display = this.currentMode==='particles'?'':'none';
+            document.getElementById('lineCanvas')!.style.display = this.currentMode==='waveform'?'':'none';
+        });
+        group.appendChild(select);
+        controlsDiv.appendChild(group);
+    }
+
     private async initialize() {
         // Init controls toggle before adding control elements
         this.setupControlsToggle();
@@ -164,8 +196,8 @@ class App {
             // Add UI controls
             this.setupTestModeButton();
             this.setupParticleCountControl();
-            // Add connections toggle
             this.setupShowConnectionsControl();
+            this.setupVisualizationModeControl();
             
             console.log('Audio setup complete, starting animation...');
             this.isRunning = true;
@@ -176,34 +208,32 @@ class App {
     }
 
     private animate = () => {
-    if (!this.isRunning) return;
+        if (!this.isRunning) return;
 
-    const audioIntensity = this.analyser.getAudioIntensity();
-    console.log('Audio intensity:', audioIntensity);
-    console.log('Particle system:', this.particleSystem);
+        const audioIntensity = this.analyser.getAudioIntensity();
+        // Base color: dark blue (rgb(0, 0, 50))
+        const baseR = 0; // Red component stays constant
+        const baseG = 0; // Green component stays constant
+        const baseB = 50; // Blue component starts at 50
 
-    // Base color: dark blue (rgb(0, 0, 50))
-    const baseR = 0; // Red component stays constant
-    const baseG = 0; // Green component stays constant
-    const baseB = 50; // Blue component starts at 50
+        // Adjust the blue component based on audio intensity
+        const intensityFactor = audioIntensity / 255; // Normalize intensity to [0, 1]
+        const bgR = Math.min(50, baseR + intensityFactor * 50); // Red increases slightly
+        const bgG = Math.min(50, baseG + intensityFactor * 50); // Green increases slightly
+        const bgB = Math.min(255, baseB + intensityFactor * 200); // Blue becomes brighter
 
-    // Adjust the blue component based on audio intensity
-    const intensityFactor = audioIntensity / 255; // Normalize intensity to [0, 1]
-    const bgR = Math.min(50, baseR + intensityFactor * 50); // Red increases slightly
-    const bgG = Math.min(50, baseG + intensityFactor * 50); // Green increases slightly
-    const bgB = Math.min(255, baseB + intensityFactor * 200); // Blue becomes brighter
+        const backgroundColor = `rgb(${Math.floor(bgR)}, ${Math.floor(bgG)}, ${Math.floor(bgB)})`;
 
-    const backgroundColor = `rgb(${Math.floor(bgR)}, ${Math.floor(bgG)}, ${Math.floor(bgB)})`;
+        if (this.currentMode === 'particles') {
+            this.particleSystem.setBackgroundColor(backgroundColor);
+            this.particleSystem.animate();
+        } else {
+            this.lineVisualizer.animate();
+        }
 
-    // Update the particle system's background color
-    this.particleSystem.setBackgroundColor(backgroundColor);
-
-    // Update and animate the particle system
-    this.particleSystem.animate();
-
-    // Continue animation
-    this.animationFrameId = requestAnimationFrame(this.animate);
-};
+        // Continue animation
+        this.animationFrameId = requestAnimationFrame(this.animate);
+    };
 }
 
 // Start the application
