@@ -5,8 +5,8 @@ module.exports = {
    mode: "development",
    entry: "./src/index.tsx",
    output: {
-      path: path.resolve(__dirname, "dist"),
-      filename: "bundle.js",
+      path: path.resolve(__dirname, "docs"),
+      filename: "index.js",
       publicPath: "/",
    },
    resolve: {
@@ -45,6 +45,6 @@ module.exports = {
       port: 3000,
       hot: true,
       open: true,
-      host: '0.0.0.0',
+      host: "0.0.0.0",
    },
 };
