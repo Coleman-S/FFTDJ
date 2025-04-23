@@ -99,6 +99,32 @@ class App {
     }
 
     /**
+     * Setup toggle control for drawing connections between particles.
+     */
+    private setupShowConnectionsControl() {
+        const controlsDiv = document.getElementById('controls');
+        if (!controlsDiv) return;
+
+        const group = document.createElement('div');
+        group.className = 'control-group';
+
+        const label = document.createElement('label');
+        label.textContent = 'Show Connections';
+        group.appendChild(label);
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = this.particleSystem.getShowConnections();
+        group.appendChild(checkbox);
+
+        checkbox.addEventListener('change', () => {
+            this.particleSystem.setShowConnections(checkbox.checked);
+        });
+
+        controlsDiv.appendChild(group);
+    }
+
+    /**
      * Setup a gear icon button to toggle the visibility of the controls panel.
      */
     private setupControlsToggle() {
@@ -138,6 +164,8 @@ class App {
             // Add UI controls
             this.setupTestModeButton();
             this.setupParticleCountControl();
+            // Add connections toggle
+            this.setupShowConnectionsControl();
             
             console.log('Audio setup complete, starting animation...');
             this.isRunning = true;

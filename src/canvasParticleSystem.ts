@@ -19,6 +19,8 @@ export class CanvasParticleSystem {
     private readonly NUM_FREQUENCY_BANDS = 8;
     private readonly DAMPING = 0.99;  // Reduced damping to maintain more energy
     private readonly EDGE_BOUNCE = 0.8;  // Bounce factor when hitting edges
+    /** Whether to draw connections between particles */
+    private showConnections: boolean = true;
 
     constructor(canvasId: string) {
         this.canvas = document.getElementById(canvasId) as HTMLCanvasElement;
@@ -273,10 +275,26 @@ export class CanvasParticleSystem {
         return this.DOT_COUNT;
     }
 
+    /**
+     * Set whether to draw connections between particles.
+     */
+    public setShowConnections(show: boolean) {
+        this.showConnections = show;
+    }
+
+    /**
+     * Get whether connections are being drawn.
+     */
+    public getShowConnections(): boolean {
+        return this.showConnections;
+    }
+
     public animate() {
         this.updateDots();
         this.drawDots();
         this.drawForceFields(); // Draw force fields before connections for better layering
-        this.drawConnections();
+        if (this.showConnections) {
+            this.drawConnections();
+        }
     }
 }
