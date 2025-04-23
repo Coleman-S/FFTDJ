@@ -32,6 +32,36 @@ class App {
         });
     }
 
+    private setupTestModeButton() {
+        const controlsDiv = document.getElementById('controls');
+        if (!controlsDiv) return;
+        
+        const testModeButton = document.createElement('button');
+        testModeButton.textContent = 'Toggle Test Mode';
+        testModeButton.style.padding = '10px';
+        testModeButton.style.margin = '10px';
+        testModeButton.style.backgroundColor = '#00aaff';
+        testModeButton.style.color = 'white';
+        testModeButton.style.border = 'none';
+        testModeButton.style.borderRadius = '5px';
+        testModeButton.style.cursor = 'pointer';
+        
+        let testModeEnabled = false;
+        
+        testModeButton.addEventListener('click', () => {
+            testModeEnabled = !testModeEnabled;
+            if (testModeEnabled) {
+                this.analyser.enableTestMode(this.audioManager.getContext());
+                testModeButton.textContent = 'Disable Test Mode';
+            } else {
+                this.analyser.disableTestMode();
+                testModeButton.textContent = 'Enable Test Mode';
+            }
+        });
+        
+        controlsDiv.appendChild(testModeButton);
+    }
+
     private async initialize() {
         try {
             console.log('Starting initialization...');
@@ -39,6 +69,10 @@ class App {
             this.analyser.connect(source);
             // Connect the analyser to the particle system
             this.particleSystem.connectAudioAnalyser(this.analyser);
+            
+            // Add the test mode button
+            this.setupTestModeButton();
+            
             console.log('Audio setup complete, starting animation...');
             this.isRunning = true;
             this.animate();
@@ -52,6 +86,7 @@ class App {
 
     const audioIntensity = this.analyser.getAudioIntensity();
     console.log('Audio intensity:', audioIntensity);
+    console.log('Particle system:', this.particleSystem);
 
     // Base color: dark blue (rgb(0, 0, 50))
     const baseR = 0; // Red component stays constant

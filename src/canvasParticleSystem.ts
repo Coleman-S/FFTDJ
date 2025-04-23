@@ -8,7 +8,7 @@ export class CanvasParticleSystem {
         vy: number;
         mass: number;  
     }[] = [];
-    private DOT_COUNT = 100;
+    private DOT_COUNT = 50;
     private RADIUS = 2;
     private DIST_THRESH_MAX = 120;
     private backgroundColor: string = '#000000';
