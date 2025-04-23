@@ -4,13 +4,15 @@ import { AudioManager } from './audio/audioContext';
 import { AudioAnalyser } from './audio/analyser';
 import { CanvasParticleSystem } from './canvasParticleSystem';
 import { CanvasLineVisualizer } from './canvasLineVisualizer';
+import { Three3DVisualizer } from './three3DVisualizer';
 
 class App {
     private audioManager: AudioManager;
     private analyser: AudioAnalyser;
     private particleSystem: CanvasParticleSystem;
     private lineVisualizer: CanvasLineVisualizer;
-    private currentMode: 'particles' | 'waveform' = 'particles';
+    private threeVisualizer: Three3DVisualizer;
+    private currentMode: 'particles' | 'waveform' | '3d' = 'particles';
     private animationFrameId: number | null = null;
     private isRunning: boolean = false;
 
@@ -19,6 +21,7 @@ class App {
         this.analyser = new AudioAnalyser(this.audioManager.getContext());
         this.particleSystem = new CanvasParticleSystem('particleCanvas');
         this.lineVisualizer = new CanvasLineVisualizer('lineCanvas', this.analyser.getAnalyserNode());
+        this.threeVisualizer = new Three3DVisualizer('threeCanvas', this.analyser.getAnalyserNode());
         
         // Initialize particle system
 
@@ -167,10 +170,10 @@ class App {
         label.textContent = 'Visualization Mode:';
         group.appendChild(label);
         const select = document.createElement('select');
-        ['particles','waveform'].forEach(mode => {
+        ['particles','waveform','3d'].forEach(mode => {
             const opt = document.createElement('option');
             opt.value = mode;
-            opt.text = mode.charAt(0).toUpperCase()+mode.slice(1);
+            opt.text = mode === '3d' ? '3D' : mode.charAt(0).toUpperCase()+mode.slice(1);
             select.appendChild(opt);
         });
         select.value = this.currentMode;
@@ -178,6 +181,7 @@ class App {
             this.currentMode = select.value as any;
             document.getElementById('particleCanvas')!.style.display = this.currentMode==='particles'?'':'none';
             document.getElementById('lineCanvas')!.style.display = this.currentMode==='waveform'?'':'none';
+            document.getElementById('threeCanvas')!.style.display = this.currentMode==='3d'?'':'none';
         });
         group.appendChild(select);
         controlsDiv.appendChild(group);
@@ -227,8 +231,10 @@ class App {
         if (this.currentMode === 'particles') {
             this.particleSystem.setBackgroundColor(backgroundColor);
             this.particleSystem.animate();
-        } else {
+        } else if (this.currentMode === 'waveform') {
             this.lineVisualizer.animate();
+        } else if (this.currentMode === '3d') {
+            this.threeVisualizer.animate();
         }
 
         // Continue animation
