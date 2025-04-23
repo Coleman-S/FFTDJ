@@ -257,6 +257,22 @@ export class CanvasParticleSystem {
         });
     }
 
+    /**
+     * Set the number of particles and reinitialize the dots array.
+     */
+    public setDotCount(count: number) {
+        this.DOT_COUNT = count;
+        this.dots = [];
+        this.initializeDots();
+    }
+
+    /**
+     * Get the current number of particles.
+     */
+    public getDotCount(): number {
+        return this.DOT_COUNT;
+    }
+
     public animate() {
         this.updateDots();
         this.drawDots();

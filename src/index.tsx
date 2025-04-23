@@ -62,7 +62,72 @@ class App {
         controlsDiv.appendChild(testModeButton);
     }
 
+    /**
+     * Setup slider control for adjusting particle count.
+     */
+    private setupParticleCountControl() {
+        const controlsDiv = document.getElementById('controls');
+        if (!controlsDiv) return;
+
+        const group = document.createElement('div');
+        group.className = 'control-group';
+
+        const label = document.createElement('label');
+        label.textContent = 'Particle Count:';
+        group.appendChild(label);
+
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.min = '10';
+        slider.max = '200';
+        slider.step = '1';
+        slider.value = this.particleSystem.getDotCount().toString();
+        group.appendChild(slider);
+
+        const valueDisplay = document.createElement('span');
+        valueDisplay.textContent = slider.value;
+        valueDisplay.style.marginLeft = '8px';
+        group.appendChild(valueDisplay);
+
+        slider.addEventListener('input', () => {
+            const count = parseInt(slider.value, 10);
+            valueDisplay.textContent = slider.value;
+            this.particleSystem.setDotCount(count);
+        });
+
+        controlsDiv.appendChild(group);
+    }
+
+    /**
+     * Setup a gear icon button to toggle the visibility of the controls panel.
+     */
+    private setupControlsToggle() {
+        const appDiv = document.getElementById('app');
+        const controlsDiv = document.getElementById('controls');
+        if (!appDiv || !controlsDiv) return;
+
+        // Hide controls initially
+        controlsDiv.style.display = 'none';
+
+        // Create toggle button
+        const toggleBtn = document.createElement('button');
+        toggleBtn.id = 'controls-toggle';
+        toggleBtn.textContent = '⚙️';
+        Object.assign(toggleBtn.style, {
+            position: 'absolute', top: '20px', right: '20px', zIndex: '11',
+            background: 'rgba(0,0,0,0.7)', color: 'white', border: 'none',
+            borderRadius: '5px', padding: '8px', cursor: 'pointer', fontSize: '16px'
+        });
+        toggleBtn.addEventListener('click', () => {
+            controlsDiv.style.display = controlsDiv.style.display === 'none' ? 'block' : 'none';
+        });
+
+        appDiv.appendChild(toggleBtn);
+    }
+
     private async initialize() {
+        // Init controls toggle before adding control elements
+        this.setupControlsToggle();
         try {
             console.log('Starting initialization...');
             const source = await this.audioManager.initialize();
@@ -70,8 +135,9 @@ class App {
             // Connect the analyser to the particle system
             this.particleSystem.connectAudioAnalyser(this.analyser);
             
-            // Add the test mode button
+            // Add UI controls
             this.setupTestModeButton();
+            this.setupParticleCountControl();
             
             console.log('Audio setup complete, starting animation...');
             this.isRunning = true;
